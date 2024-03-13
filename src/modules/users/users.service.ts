@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { User } from '@prisma/client';
@@ -8,6 +12,36 @@ import Logging from 'src/library/Logging';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  async findById(id: string): Promise<User> {
+    try {
+      return await this.prisma.user.findUnique({
+        where: {
+          id: id,
+        },
+      });
+    } catch (error) {
+      Logging.error(error);
+      throw new InternalServerErrorException(
+        `Something went wrong while searching for a user.`,
+      );
+    }
+  }
+
+  async findBy(email: string): Promise<User> {
+    try {
+      return await this.prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+    } catch (error) {
+      Logging.error(error);
+      throw new InternalServerErrorException(
+        `Something went wrong while searching for a user.`,
+      );
+    }
+  }
+
   async create(createUserDto: CreateUserDto): Promise<User> {
     const user = await this.prisma.user.findUnique({
       where: {
@@ -15,7 +49,7 @@ export class UsersService {
       },
     });
     if (user) {
-      throw new BadRequestException('User with that email already exists.');
+      throw new BadRequestException('User with this email already exists.');
     }
     try {
       const newUser = await this.prisma.user.create({
